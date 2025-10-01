@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import timedelta
 import dj_database_url
 from dotenv import load_dotenv
+import cloudinary
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, ".env"))
@@ -25,11 +26,10 @@ CSRF_TRUSTED_ORIGINS = ["https://api-quivix.onrender.com"]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "https://careers.quivixdigital.com",
-    "https://quivixcareers.netlify.app",  # IMPORTANT: Replace with your actual frontend URL!
+    "https://quivixcareers.netlify.app",
 ]
 
-# --- THE ABSOLUTE FINAL FIX IS HERE ---
-# Correctly tells Django to trust the 'X-Forwarded-Proto' header with the value 'https'. NO EXTRA 'S'.
+# --- SSL and Security Settings ---
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
 
@@ -109,17 +109,42 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# --- Internationalization & Static/Media Files ---
+# --- Internationalization ---
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
+
+# --- Static Files Configuration ---
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# --- Cloudinary Configuration ---
+CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
+
+if CLOUDINARY_URL:
+    # Parse the URL to extract components
+    cloudinary_config = cloudinary.config(cloudinary_url=CLOUDINARY_URL)
+
+    CLOUDINARY_STORAGE = {
+        "CLOUD_NAME": cloudinary_config.cloud_name,
+        "API_KEY": cloudinary_config.api_key,
+        "API_SECRET": cloudinary_config.api_secret,
+    }
+else:
+    # Fallback if CLOUDINARY_URL is not set
+    CLOUDINARY_STORAGE = {
+        "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", ""),
+        "API_KEY": os.getenv("CLOUDINARY_API_KEY", ""),
+        "API_SECRET": os.getenv("CLOUDINARY_API_SECRET", ""),
+    }
+
+# Use Cloudinary for media file storage
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 MEDIA_URL = "/media/"
-CLOUDINARY_STORAGE = {}
+
+# --- Default Field Type ---
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
@@ -129,6 +154,7 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     )
 }
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
