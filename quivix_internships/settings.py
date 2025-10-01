@@ -24,7 +24,8 @@ CSRF_TRUSTED_ORIGINS = ["https://api-quivix.onrender.com"]
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "https://your-netlify-frontend-url.netlify.app",  # IMPORTANT: Replace with your actual frontend URL!
+    "https://careers.quivixdigital.com",
+    "https://quivixcareers.netlify.app",  # IMPORTANT: Replace with your actual frontend URL!
 ]
 
 # --- THE ABSOLUTE FINAL FIX IS HERE ---
