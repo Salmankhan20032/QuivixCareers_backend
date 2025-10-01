@@ -27,7 +27,9 @@ CORS_ALLOWED_ORIGINS = [
     "https://your-netlify-frontend-url.netlify.app",  # IMPORTANT: Replace with your actual frontend URL!
 ]
 
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "httpss")
+# --- THE ABSOLUTE FINAL FIX IS HERE ---
+# Correctly tells Django to trust the 'X-Forwarded-Proto' header with the value 'https'. NO EXTRA 'S'.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = True
 
 
@@ -64,8 +66,6 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "quivix_internships.urls"
 
-
-# --- THIS IS THE CRITICAL SECTION THAT WAS MISSING ---
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -81,7 +81,6 @@ TEMPLATES = [
         },
     },
 ]
-# --------------------------------------------------------
 
 WSGI_APPLICATION = "quivix_internships.wsgi.application"
 
