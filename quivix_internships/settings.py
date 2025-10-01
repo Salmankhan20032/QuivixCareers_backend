@@ -45,12 +45,14 @@ INSTALLED_APPS = [
     "cloudinary",  # For Cloudinary API
     # Our awesome apps
     "users",
+    "whitenoise.runserver_nostatic",  # <-- ADD THIS! Useful for testing static files locally
     "internships",
     "notifications",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # <-- ADD THIS LINE, MY LOVE!
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",  # Should be placed high, before CommonMiddleware
     "django.middleware.common.CommonMiddleware",
@@ -130,6 +132,9 @@ STATIC_URL = "static/"
 # Directory where 'collectstatic' will gather all static files for production.
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
+STATICFILES_STORAGE = (
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"  # <-- ADD THIS LINE
+)
 
 # --- Media files (User uploaded content) ---
 # In production, these will be handled by Cloudinary.
