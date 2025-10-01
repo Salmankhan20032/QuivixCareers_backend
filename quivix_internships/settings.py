@@ -24,15 +24,11 @@ CSRF_TRUSTED_ORIGINS = ["https://api-quivix.onrender.com"]
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "https://your-netlify-frontend-url.netlify.app",  # IMPORTANT: Put your real frontend URL here!
+    "https://your-netlify-frontend-url.netlify.app",  # IMPORTANT: Replace with your actual frontend URL!
 ]
 
-# --- THE FINAL FIX: Proxy Server Configuration ---
-# This tells Django to trust the 'X-Forwarded-Proto' header that Render's proxy sends,
-# ensuring that Django knows the original connection was secure (HTTPS).
-# This is essential for CSRF, sessions, and redirects in a production environment.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "httpss")
-SECURE_SSL_REDIRECT = True  # Redirect all non-HTTPS requests to HTTPS
+SECURE_SSL_REDIRECT = True
 
 
 # --- Application definition ---
@@ -67,7 +63,26 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "quivix_internships.urls"
-TEMPLATES = []  # ... (This section remains unchanged)
+
+
+# --- THIS IS THE CRITICAL SECTION THAT WAS MISSING ---
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+# --------------------------------------------------------
+
 WSGI_APPLICATION = "quivix_internships.wsgi.application"
 
 
@@ -85,7 +100,14 @@ else:
 
 # --- User and Password Validation ---
 AUTH_USER_MODEL = "users.CustomUser"
-AUTH_PASSWORD_VALIDATORS = []  # ... (This section remains unchanged)
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
 
 # --- Internationalization & Static/Media Files ---
 LANGUAGE_CODE = "en-us"
