@@ -25,7 +25,7 @@ SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-default-key-for-local-dev"
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 
 # Add your production domain name(s) and 'localhost' for local testing.
-ALLOWED_HOSTS = ["127.0.0.1", "localhost", "your-production-domain.com"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "https://api-quivix.onrender.com/"]
 
 
 # --- Application definition ---
