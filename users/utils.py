@@ -3,7 +3,7 @@
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 from django.conf import settings
-import os  # Import os to check environment variables
+import os
 
 # --- Complete and robust implementation for sending OTP emails ---
 
@@ -28,20 +28,40 @@ def send_otp_email(user, otp_code):
     )
 
     # 3. Define email properties
-    sender = {"name": "QuivixCareers", "email": "noreply@quivixcareers.com"}
+    #    --- THIS IS THE CRUCIAL LINE WE UPDATED ---
+    #    It now uses your verified professional email sender.
+    sender = {"name": "QuivixCareers", "email": "noreply@quivixdigital.com"}
     to = [{"email": user.email, "name": user.full_name}]
 
-    # 4. Create the email content (you can use a template or simple HTML)
+    # 4. Create the email content using a clean and simple HTML template
     html_content = f"""
-    <html>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Your Verification Code</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }}
+            .header {{ font-size: 24px; font-weight: bold; color: #007bff; }}
+            .otp-code {{ font-size: 36px; font-weight: bold; letter-spacing: 5px; margin: 25px 0; padding: 10px; text-align: center; background-color: #f8f9fa; border-radius: 5px; }}
+            .footer {{ font-size: 12px; color: #777; margin-top: 20px; text-align: center; }}
+        </style>
+    </head>
     <body>
-        <h2>Hello {user.full_name},</h2>
-        <p>Thank you for registering with QuivixCareers. Please use the following One-Time Password (OTP) to verify your account:</p>
-        <h1 style="font-size: 2.5em; letter-spacing: 5px; margin: 20px 0; color: #007bff;">{otp_code}</h1>
-        <p>This code is valid for 10 minutes. If you did not request this, please ignore this email.</p>
-        <br>
-        <p>Best Regards,</p>
-        <p>The QuivixCareers Team</p>
+        <div class="container">
+            <p class="header">Hello {user.full_name},</p>
+            <p>Thank you for registering with QuivixCareers. Please use the following One-Time Password (OTP) to verify your account:</p>
+            <div class="otp-code">{otp_code}</div>
+            <p>This code is valid for 10 minutes. If you did not request this, please ignore this email.</p>
+            <br>
+            <p>Best Regards,</p>
+            <p>The QuivixCareers Team</p>
+            <div class="footer">
+                <p>QuivixCareers | QuivixDigital.com</p>
+            </div>
+        </div>
     </body>
     </html>
     """
