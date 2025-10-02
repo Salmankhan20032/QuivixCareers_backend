@@ -3,19 +3,11 @@
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-
-# --- THE MISSING IMPORT IS ADDED BACK HERE, MY LOVE! ---
 from .serializers import RegisterSerializer, UserSerializer, UserProfileSerializer
-from .models import (
-    CustomUser,
-    OTP,
-    UserProfile,
-)  # Also good to explicitly import UserProfile
+from .models import CustomUser, OTP, UserProfile
 from .utils import send_otp_email
 from django.utils import timezone
 import random
-
-# For generating tokens manually after verification
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
@@ -58,6 +50,12 @@ class VerifyOTPView(APIView):
             )
         try:
             user = CustomUser.objects.get(email=email)
+            if user.is_verified:
+                return Response(
+                    {"error": "This account is already verified."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
             otp = OTP.objects.filter(user=user, otp_code=otp_code).latest("created_at")
 
             if otp.is_expired():
@@ -70,9 +68,7 @@ class VerifyOTPView(APIView):
             OTP.objects.filter(user=user).delete()
 
             refresh = RefreshToken.for_user(user)
-            user_serializer = UserSerializer(
-                user, context={"request": request}
-            )  # Pass context
+            user_serializer = UserSerializer(user, context={"request": request})
 
             return Response(
                 {
@@ -147,38 +143,38 @@ class UserProfileView(APIView):
         return Response(serializer.data)
 
     def put(self, request):
+        """
+        --- UPDATED AND SIMPLIFIED ---
+        This method now robustly updates both CustomUser and UserProfile models
+        from a single API call, handling partial data from onboarding or the full
+        profile form correctly.
+        """
         user = request.user
         profile = user.profile
 
-        user_data = {
-            "full_name": request.data.get("full_name", user.full_name),
-            "nationality": request.data.get("nationality", user.nationality),
-        }
+        # 1. Update the CustomUser fields directly from the request data.
+        #    Use current user data as a fallback if a field isn't provided.
+        user.full_name = request.data.get("full_name", user.full_name)
+        user.nationality = request.data.get("nationality", user.nationality)
+        user.save(update_fields=["full_name", "nationality"])
 
-        profile_data = request.data.copy()
-        profile_data.pop("full_name", None)
-        profile_data.pop("nationality", None)
-        profile_data.pop("email", None)
-
-        user_serializer = UserSerializer(
-            instance=user, data=user_data, partial=True, context={"request": request}
-        )
+        # 2. Use the UserProfileSerializer to handle the nested profile data.
+        #    The serializer will automatically ignore fields it doesn't recognize
+        #    (like 'full_name'), which makes this very clean.
         profile_serializer = UserProfileSerializer(
             instance=profile,
-            data=profile_data,
+            data=request.data,
             partial=True,
             context={"request": request},
         )
 
-        is_user_valid = user_serializer.is_valid()
-        is_profile_valid = profile_serializer.is_valid()
-
-        if is_user_valid and is_profile_valid:
-            user_serializer.save()
+        if profile_serializer.is_valid(raise_exception=True):
             profile_serializer.save()
 
+            # 3. After saving everything, serialize the updated user object
+            #    and send it back as the response.
             final_serializer = self.serializer_class(user, context={"request": request})
             return Response(final_serializer.data, status=status.HTTP_200_OK)
 
-        errors = {**user_serializer.errors, **profile_serializer.errors}
-        return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        # The 'raise_exception=True' handles the error case, but this is a fallback.
+        return Response(profile_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
