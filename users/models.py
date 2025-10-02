@@ -1,5 +1,3 @@
-# users/models.py
-
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -10,8 +8,8 @@ from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
 from datetime import timedelta
-import cloudinary
 from cloudinary.models import CloudinaryField
+from cloudinary.uploader import destroy
 
 
 # -------------------------
@@ -79,7 +77,7 @@ class UserProfile(models.Model):
 
 
 # -------------------------
-# Signals for profile creation & saving
+# Signals: create & save user profile
 # -------------------------
 @receiver(post_save, sender=CustomUser)
 def create_user_profile(sender, instance, created, **kwargs):
@@ -111,9 +109,10 @@ def delete_old_profile_picture(sender, instance, **kwargs):
 
     if old_image and old_image != new_image:
         try:
-            old_image.delete()
-        except Exception:
-            pass
+            if old_image.public_id:
+                destroy(old_image.public_id)
+        except Exception as e:
+            print(f"Failed to delete old image: {e}")
 
 
 # -------------------------
@@ -121,11 +120,11 @@ def delete_old_profile_picture(sender, instance, **kwargs):
 # -------------------------
 @receiver(post_delete, sender=UserProfile)
 def delete_profile_picture_on_delete(sender, instance, **kwargs):
-    if instance.profile_picture:
+    if instance.profile_picture and instance.profile_picture.public_id:
         try:
-            instance.profile_picture.delete()
-        except Exception:
-            pass
+            destroy(instance.profile_picture.public_id)
+        except Exception as e:
+            print(f"Failed to delete profile image on delete: {e}")
 
 
 # -------------------------
