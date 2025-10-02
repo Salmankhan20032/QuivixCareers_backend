@@ -1,4 +1,3 @@
-# users/models.py
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
@@ -9,7 +8,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from datetime import timedelta
-import random
+import cloudinary
+from cloudinary.models import CloudinaryField
 
 
 class CustomUserManager(BaseUserManager):
@@ -25,9 +25,7 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, full_name, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        extra_fields.setdefault(
-            "is_verified", True
-        )  # Superusers should be verified by default
+        extra_fields.setdefault("is_verified", True)
         return self.create_user(email, full_name, password, **extra_fields)
 
 
@@ -35,9 +33,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=255)
     nationality = models.CharField(max_length=100, blank=True, null=True)
-    is_active = models.BooleanField(default=True)  # is_active is now just for banning
+    is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
-    is_verified = models.BooleanField(default=False)  # <-- OUR NEW VERIFICATION FIELD!
+    is_verified = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
 
     objects = CustomUserManager()
@@ -60,9 +58,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(
         CustomUser, on_delete=models.CASCADE, related_name="profile"
     )
-    profile_picture = models.ImageField(
-        upload_to="profile_pics/", null=True, blank=True
-    )
+    profile_picture = CloudinaryField("profile_picture", blank=True, null=True)
     university = models.CharField(max_length=200, blank=True, null=True)
     major = models.CharField(max_length=200, blank=True, null=True)
     interest = models.CharField(
@@ -73,7 +69,6 @@ class UserProfile(models.Model):
         return f"{self.user.full_name}'s Profile"
 
 
-# Signal to create a UserProfile automatically when a CustomUser is created
 @receiver(post_save, sender=CustomUser)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -82,19 +77,16 @@ def create_user_profile(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=CustomUser)
 def save_user_profile(sender, instance, **kwargs):
-    # Check if a profile exists to avoid errors on initial creation
     if hasattr(instance, "profile"):
         instance.profile.save()
 
 
-# --- NEW OTP MODEL ---
 class OTP(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     otp_code = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def is_expired(self):
-        # OTPs will be valid for 10 minutes
         return timezone.now() > self.created_at + timedelta(minutes=10)
 
     def __str__(self):

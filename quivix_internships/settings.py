@@ -1,5 +1,3 @@
-# quivix_internships/settings.py
-
 import os
 from pathlib import Path
 from datetime import timedelta
@@ -7,11 +5,13 @@ import dj_database_url
 from dotenv import load_dotenv
 import cloudinary
 
+# --- BASE DIRECTORY ---
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# --- LOAD ENVIRONMENT VARIABLES ---
 load_dotenv(os.path.join(BASE_DIR, ".env"))
 
-
-# --- Production Security Settings ---
+# --- SECURITY SETTINGS ---
 SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
 
@@ -29,12 +29,11 @@ CORS_ALLOWED_ORIGINS = [
     "https://quivixcareers.netlify.app",
 ]
 
-# --- SSL and Security Settings ---
+# --- SSL & PROXY SETTINGS ---
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = not DEBUG  # Only redirect to HTTPS in production
+SECURE_SSL_REDIRECT = not DEBUG
 
-
-# --- Application definition ---
+# --- APPLICATION DEFINITION ---
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -85,10 +84,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "quivix_internships.wsgi.application"
 
-
-# --- Database (Always use Neon PostgreSQL) ---
+# --- DATABASE (NEON POSTGRES) ---
 DATABASE_URL = os.getenv("DATABASE_URL")
-
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is required!")
 
@@ -101,13 +98,10 @@ DATABASES = {
     )
 }
 
-# Force SSL mode explicitly for psycopg
-DATABASES["default"]["OPTIONS"] = {
-    "sslmode": "require",
-}
+# Explicit SSL mode for psycopg
+DATABASES["default"]["OPTIONS"] = {"sslmode": "require"}
 
-
-# --- User and Password Validation ---
+# --- AUTH SETTINGS ---
 AUTH_USER_MODEL = "users.CustomUser"
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -118,24 +112,22 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# --- Internationalization ---
+# --- INTERNATIONALIZATION ---
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
 USE_TZ = True
 
-# --- Static Files Configuration ---
+# --- STATIC FILES ---
 STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# --- Cloudinary Configuration (Always Required) ---
+# --- MEDIA & CLOUDINARY ---
 CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
-
 if not CLOUDINARY_URL:
     raise ValueError("CLOUDINARY_URL environment variable is required!")
 
-# Parse the URL to extract components
 cloudinary_config = cloudinary.config(cloudinary_url=CLOUDINARY_URL)
 
 CLOUDINARY_STORAGE = {
@@ -144,15 +136,13 @@ CLOUDINARY_STORAGE = {
     "API_SECRET": cloudinary_config.api_secret,
 }
 
-# Use Cloudinary for media file storage
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 MEDIA_URL = "/media/"
 
-# --- Default Field Type ---
+# --- DEFAULT FIELD TYPE ---
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-
-# --- DRF & JWT Settings ---
+# --- REST FRAMEWORK & JWT ---
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -164,6 +154,5 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
-
-# --- Third-Party Service Keys ---
+# --- THIRD-PARTY SERVICE KEYS ---
 BREVO_API_KEY = os.getenv("BREVO_API_KEY")

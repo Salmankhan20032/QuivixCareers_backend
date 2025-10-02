@@ -1,7 +1,5 @@
-# users/serializers.py
 from rest_framework import serializers
 from .models import CustomUser, UserProfile
-from django.core.files.images import get_image_dimensions
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -19,7 +17,6 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         representation = super().to_representation(instance)
         if instance.profile_picture:
-            # ⚡ Don’t wrap it in build_absolute_uri — Cloudinary already provides full URL
             representation["profile_picture"] = instance.profile_picture.url
         return representation
 
@@ -44,7 +41,6 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    # This serializer will now pass the 'request' context to the nested serializer
     profile = UserProfileSerializer()
 
     class Meta:
