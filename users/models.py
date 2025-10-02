@@ -1,10 +1,12 @@
+# users/models.py
+
 from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
     PermissionsMixin,
 )
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
 from datetime import timedelta
@@ -12,6 +14,9 @@ import cloudinary
 from cloudinary.models import CloudinaryField
 
 
+# -------------------------
+# Custom User Manager
+# -------------------------
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, full_name, password=None, **extra_fields):
         if not email:
@@ -29,6 +34,9 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, full_name, password, **extra_fields)
 
 
+# -------------------------
+# Custom User Model
+# -------------------------
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=255)
@@ -47,6 +55,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         return self.email
 
 
+# -------------------------
+# User Profile Model
+# -------------------------
 class UserProfile(models.Model):
     class InterestChoices(models.TextChoices):
         WEB_DEV = "Web Development", "Web Development"
@@ -58,17 +69,18 @@ class UserProfile(models.Model):
     user = models.OneToOneField(
         CustomUser, on_delete=models.CASCADE, related_name="profile"
     )
-    profile_picture = CloudinaryField("profile_picture", blank=True, null=True)
+    profile_picture = CloudinaryField("profile_picture", null=True, blank=True)
     university = models.CharField(max_length=200, blank=True, null=True)
     major = models.CharField(max_length=200, blank=True, null=True)
-    interest = models.CharField(
-        max_length=50, choices=InterestChoices.choices, blank=True, null=True
-    )
+    interest = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.full_name}'s Profile"
 
 
+# -------------------------
+# Signals for profile creation & saving
+# -------------------------
 @receiver(post_save, sender=CustomUser)
 def create_user_profile(sender, instance, created, **kwargs):
     if created:
@@ -81,6 +93,44 @@ def save_user_profile(sender, instance, **kwargs):
         instance.profile.save()
 
 
+# -------------------------
+# Signal: delete old profile picture on update
+# -------------------------
+@receiver(pre_save, sender=UserProfile)
+def delete_old_profile_picture(sender, instance, **kwargs):
+    if not instance.pk:
+        return  # New profile, nothing to delete
+
+    try:
+        old_profile = UserProfile.objects.get(pk=instance.pk)
+    except UserProfile.DoesNotExist:
+        return
+
+    old_image = old_profile.profile_picture
+    new_image = instance.profile_picture
+
+    if old_image and old_image != new_image:
+        try:
+            old_image.delete()
+        except Exception:
+            pass
+
+
+# -------------------------
+# Signal: delete profile picture on profile deletion
+# -------------------------
+@receiver(post_delete, sender=UserProfile)
+def delete_profile_picture_on_delete(sender, instance, **kwargs):
+    if instance.profile_picture:
+        try:
+            instance.profile_picture.delete()
+        except Exception:
+            pass
+
+
+# -------------------------
+# OTP Model
+# -------------------------
 class OTP(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     otp_code = models.CharField(max_length=6)
