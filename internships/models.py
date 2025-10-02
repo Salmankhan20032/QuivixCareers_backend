@@ -43,6 +43,41 @@ class Task(models.Model):
         return f"{self.internship.title} - Task {self.order}: {self.title}"
 
 
+class InternshipStep(models.Model):
+    """
+    A flexible step within an internship.
+    Can be a learning module or a task/submission section.
+    """
+
+    class StepType(models.TextChoices):
+        LEARN = "learn", "Learning Material"
+        TASK = "task", "Task & Submission"
+
+    internship = models.ForeignKey(
+        Internship, related_name="steps", on_delete=models.CASCADE
+    )
+    step_type = models.CharField(
+        max_length=10, choices=StepType.choices, default=StepType.LEARN
+    )
+    title = models.CharField(max_length=200)
+    content = models.TextField(
+        blank=True, help_text="Main content for a 'Learning' step."
+    )
+    external_link = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="Optional: A link to a PDF, video, or article for a 'Learning' step.",
+    )
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order"]
+
+    def __str__(self):
+        return f"{self.internship.title} - Step {self.order}: {self.title}"
+
+
 class UserInternship(models.Model):
     class Status(models.TextChoices):
         IN_PROGRESS = "in_progress", "In Progress"

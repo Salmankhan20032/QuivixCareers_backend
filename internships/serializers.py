@@ -1,15 +1,24 @@
 # internships/serializers.py
 
 from rest_framework import serializers
-from .models import Internship, Task, UserInternship, Submission
+from .models import (
+    Internship,
+    InternshipStep,
+    UserInternship,
+    Submission,
+)  # Updated import
 from cloudinary.models import CloudinaryField
 from cloudinary.utils import cloudinary_url
 
 
-class TaskSerializer(serializers.ModelSerializer):
+class InternshipStepSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the new InternshipStep model.
+    """
+
     class Meta:
-        model = Task
-        fields = ["id", "title", "description", "order"]
+        model = InternshipStep
+        fields = ["id", "title", "step_type", "content", "external_link", "order"]
 
 
 class InternshipListSerializer(serializers.ModelSerializer):
@@ -27,7 +36,8 @@ class InternshipListSerializer(serializers.ModelSerializer):
 
 
 class InternshipDetailSerializer(serializers.ModelSerializer):
-    tasks = TaskSerializer(many=True, read_only=True)
+    # --- UPDATED: Use the new step serializer ---
+    steps = InternshipStepSerializer(many=True, read_only=True)
 
     class Meta:
         model = Internship
@@ -39,7 +49,7 @@ class InternshipDetailSerializer(serializers.ModelSerializer):
             "field",
             "length_days",
             "created_at",
-            "tasks",
+            "steps",  # Changed from "tasks" to "steps"
         ]
 
 
