@@ -31,7 +31,7 @@ CORS_ALLOWED_ORIGINS = [
 
 # --- SSL and Security Settings ---
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = True
+SECURE_SSL_REDIRECT = not DEBUG  # Only redirect to HTTPS in production
 
 
 # --- Application definition ---
@@ -86,16 +86,25 @@ TEMPLATES = [
 WSGI_APPLICATION = "quivix_internships.wsgi.application"
 
 
-# --- Database (Neon & SQLite Configuration) ---
-if "DATABASE_URL" in os.environ:
-    DATABASES = {"default": dj_database_url.config(conn_max_age=600, ssl_require=True)}
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+# --- Database (Always use Neon PostgreSQL) ---
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is required!")
+
+DATABASES = {
+    "default": dj_database_url.config(
+        default=DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True,
+    )
+}
+
+# Force SSL mode explicitly for psycopg
+DATABASES["default"]["OPTIONS"] = {
+    "sslmode": "require",
+}
 
 
 # --- User and Password Validation ---
@@ -120,25 +129,20 @@ STATIC_URL = "static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# --- Cloudinary Configuration ---
+# --- Cloudinary Configuration (Always Required) ---
 CLOUDINARY_URL = os.getenv("CLOUDINARY_URL")
 
-if CLOUDINARY_URL:
-    # Parse the URL to extract components
-    cloudinary_config = cloudinary.config(cloudinary_url=CLOUDINARY_URL)
+if not CLOUDINARY_URL:
+    raise ValueError("CLOUDINARY_URL environment variable is required!")
 
-    CLOUDINARY_STORAGE = {
-        "CLOUD_NAME": cloudinary_config.cloud_name,
-        "API_KEY": cloudinary_config.api_key,
-        "API_SECRET": cloudinary_config.api_secret,
-    }
-else:
-    # Fallback if CLOUDINARY_URL is not set
-    CLOUDINARY_STORAGE = {
-        "CLOUD_NAME": os.getenv("CLOUDINARY_CLOUD_NAME", ""),
-        "API_KEY": os.getenv("CLOUDINARY_API_KEY", ""),
-        "API_SECRET": os.getenv("CLOUDINARY_API_SECRET", ""),
-    }
+# Parse the URL to extract components
+cloudinary_config = cloudinary.config(cloudinary_url=CLOUDINARY_URL)
+
+CLOUDINARY_STORAGE = {
+    "CLOUD_NAME": cloudinary_config.cloud_name,
+    "API_KEY": cloudinary_config.api_key,
+    "API_SECRET": cloudinary_config.api_secret,
+}
 
 # Use Cloudinary for media file storage
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
