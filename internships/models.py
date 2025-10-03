@@ -29,16 +29,7 @@ class Internship(models.Model):
         return self.title
 
 
-# --- REMOVED aOLD aTask MODEL ---
-# The InternshipStep model below is its powerful replacement.
-
-
 class InternshipStep(models.Model):
-    """
-    A flexible step within an internship.
-    Can be a learning module or a task/submission section.
-    """
-
     class StepType(models.TextChoices):
         LEARN = "learn", "Learning Material"
         TASK = "task", "Task & Submission"
@@ -83,10 +74,11 @@ class UserInternship(models.Model):
     )
     is_started = models.BooleanField(default=False)
 
-    # --- THIS IS THE NEW FIELD TO STORE PROGRESS ---
-    completed_steps = models.ManyToManyField(InternshipStep, blank=True)
+    # --- THIS IS THE PERSISTENT PROGRESS FIELD ---
+    completed_steps = models.ManyToManyField(
+        InternshipStep, blank=True, related_name="completed_by"
+    )
 
-    # Note: these fields are now redundant, but kept for compatibility.
     intro_completed = models.BooleanField(default=False)
     roadmap_completed = models.BooleanField(default=False)
 
@@ -119,7 +111,6 @@ class Submission(models.Model):
         return f"Submission for {self.user_internship}"
 
 
-# --- SIGNALS (Unchanged) ---
 @receiver(pre_save, sender=Internship)
 def delete_old_thumbnail(sender, instance, **kwargs):
     if not instance.pk:
@@ -128,11 +119,9 @@ def delete_old_thumbnail(sender, instance, **kwargs):
         old_instance = Internship.objects.get(pk=instance.pk)
     except Internship.DoesNotExist:
         return
-    old_image = old_instance.thumbnail
-    new_image = instance.thumbnail
-    if old_image and old_image != new_image:
+    if old_instance.thumbnail and old_instance.thumbnail != instance.thumbnail:
         try:
-            old_image.delete()
+            old_instance.thumbnail.delete(save=False)
         except Exception:
             pass
 
@@ -141,6 +130,6 @@ def delete_old_thumbnail(sender, instance, **kwargs):
 def delete_thumbnail_on_delete(sender, instance, **kwargs):
     if instance.thumbnail:
         try:
-            instance.thumbnail.delete()
+            instance.thumbnail.delete(save=False)
         except Exception:
             pass

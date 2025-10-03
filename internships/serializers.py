@@ -19,9 +19,8 @@ class InternshipListSerializer(serializers.ModelSerializer):
         fields = ["id", "title", "thumbnail", "field", "length_days", "created_at"]
 
     def get_thumbnail(self, obj):
-        if obj.thumbnail:
-            url, options = cloudinary_url(obj.thumbnail.public_id)
-            return url
+        if obj.thumbnail and hasattr(obj.thumbnail, "public_id"):
+            return cloudinary_url(obj.thumbnail.public_id)[0]
         return None
 
 
@@ -59,16 +58,14 @@ class UserInternshipSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserInternship
-        # --- aDDED 'completed_steps' TO THE aSERIALIZER ---
-        # This will send a list of completed step IDs to the frontend.
         fields = [
             "id",
             "internship",
             "enrollment_date",
             "status",
             "is_started",
-            "intro_completed",  # Kept for compatibility
-            "roadmap_completed",  # Kept for compatibility
+            "intro_completed",
+            "roadmap_completed",
             "submission",
-            "completed_steps",  # This is the new, important field
+            "completed_steps",  # <-- THIS FIELD IS NOW INCLUDED
         ]
