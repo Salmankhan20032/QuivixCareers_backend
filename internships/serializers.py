@@ -44,17 +44,23 @@ class InternshipDetailSerializer(serializers.ModelSerializer):
 class SubmissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Submission
+        # Added evaluation_reason so frontend can display it
         fields = [
+            "id",
             "project_link",
             "fully_completed",
             "experience_feedback",
             "difficulty_rating",
+            "submitted_at",
+            "evaluation_reason",
         ]
 
 
 class UserInternshipSerializer(serializers.ModelSerializer):
     internship = InternshipListSerializer(read_only=True)
-    submission = SubmissionSerializer(read_only=True)
+
+    # --- UPDATED: To handle multiple submissions, we only show the latest one ---
+    latest_submission = serializers.SerializerMethodField()
 
     class Meta:
         model = UserInternship
@@ -64,8 +70,13 @@ class UserInternshipSerializer(serializers.ModelSerializer):
             "enrollment_date",
             "status",
             "is_started",
-            "intro_completed",
-            "roadmap_completed",
-            "submission",
-            "completed_steps",  # <-- THIS FIELD IS NOW INCLUDED
+            "completed_steps",
+            "latest_submission",
         ]
+
+    def get_latest_submission(self, obj):
+        # Because we added ordering to the Submission model, .first() gives the newest one.
+        latest = obj.submissions.first()
+        if latest:
+            return SubmissionSerializer(latest).data
+        return None

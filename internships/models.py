@@ -73,12 +73,9 @@ class UserInternship(models.Model):
         max_length=20, choices=Status.choices, default=Status.IN_PROGRESS
     )
     is_started = models.BooleanField(default=False)
-
-    # --- THIS IS THE PERSISTENT PROGRESS FIELD ---
     completed_steps = models.ManyToManyField(
         InternshipStep, blank=True, related_name="completed_by"
     )
-
     intro_completed = models.BooleanField(default=False)
     roadmap_completed = models.BooleanField(default=False)
 
@@ -95,9 +92,12 @@ class Submission(models.Model):
         MID = "mid", "Medium"
         HARD = "hard", "Hard"
 
-    user_internship = models.OneToOneField(
-        UserInternship, on_delete=models.CASCADE, related_name="submission"
+    # --- THE CRITICAL CHANGE FOR RESUBMISSION ---
+    # From OneToOneField to ForeignKey, allowing a history of submissions.
+    user_internship = models.ForeignKey(
+        UserInternship, on_delete=models.CASCADE, related_name="submissions"
     )
+
     project_link = models.URLField(max_length=500)
     fully_completed = models.BooleanField()
     experience_feedback = models.TextField(blank=True, null=True)
@@ -107,8 +107,12 @@ class Submission(models.Model):
         blank=True, null=True, help_text="Reason for rejection, if any."
     )
 
+    class Meta:
+        # This ensures that when we ask for submissions, the newest one is always first.
+        ordering = ["-submitted_at"]
+
     def __str__(self):
-        return f"Submission for {self.user_internship}"
+        return f"Submission for {self.user_internship} at {self.submitted_at.strftime('%Y-%m-%d')}"
 
 
 @receiver(pre_save, sender=Internship)
