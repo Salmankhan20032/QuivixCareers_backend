@@ -1,21 +1,11 @@
 # internships/serializers.py
 
 from rest_framework import serializers
-from .models import (
-    Internship,
-    InternshipStep,
-    UserInternship,
-    Submission,
-)  # Updated import
-from cloudinary.models import CloudinaryField
+from .models import Internship, InternshipStep, UserInternship, Submission
 from cloudinary.utils import cloudinary_url
 
 
 class InternshipStepSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the new InternshipStep model.
-    """
-
     class Meta:
         model = InternshipStep
         fields = ["id", "title", "step_type", "content", "external_link", "order"]
@@ -36,7 +26,6 @@ class InternshipListSerializer(serializers.ModelSerializer):
 
 
 class InternshipDetailSerializer(serializers.ModelSerializer):
-    # --- UPDATED: Use the new step serializer ---
     steps = InternshipStepSerializer(many=True, read_only=True)
 
     class Meta:
@@ -49,7 +38,7 @@ class InternshipDetailSerializer(serializers.ModelSerializer):
             "field",
             "length_days",
             "created_at",
-            "steps",  # Changed from "tasks" to "steps"
+            "steps",
         ]
 
 
@@ -70,14 +59,16 @@ class UserInternshipSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserInternship
-        # --- THE 'is_started' FIELD IS NOW INCLUDED HERE ---
+        # --- aDDED 'completed_steps' TO THE aSERIALIZER ---
+        # This will send a list of completed step IDs to the frontend.
         fields = [
             "id",
             "internship",
             "enrollment_date",
             "status",
             "is_started",
-            "intro_completed",
-            "roadmap_completed",
+            "intro_completed",  # Kept for compatibility
+            "roadmap_completed",  # Kept for compatibility
             "submission",
+            "completed_steps",  # This is the new, important field
         ]

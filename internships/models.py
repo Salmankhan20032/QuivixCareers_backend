@@ -1,10 +1,11 @@
+# internships/models.py
+
 from django.db import models
 from django.conf import settings
 from django.db.models.signals import pre_save, post_delete
 from django.dispatch import receiver
 from cloudinary.models import CloudinaryField
 
-# Choices for fields, aligning with UserProfile interests
 FIELD_CHOICES = [
     ("Web Development", "Web Development"),
     ("Mobile App Development", "Mobile App Development"),
@@ -28,19 +29,8 @@ class Internship(models.Model):
         return self.title
 
 
-class Task(models.Model):
-    internship = models.ForeignKey(
-        Internship, related_name="tasks", on_delete=models.CASCADE
-    )
-    title = models.CharField(max_length=200)
-    description = models.TextField(help_text="Detailed instructions for the task")
-    order = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        ordering = ["order"]
-
-    def __str__(self):
-        return f"{self.internship.title} - Task {self.order}: {self.title}"
+# --- REMOVED aOLD aTask MODEL ---
+# The InternshipStep model below is its powerful replacement.
 
 
 class InternshipStep(models.Model):
@@ -91,8 +81,12 @@ class UserInternship(models.Model):
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.IN_PROGRESS
     )
-
     is_started = models.BooleanField(default=False)
+
+    # --- THIS IS THE NEW FIELD TO STORE PROGRESS ---
+    completed_steps = models.ManyToManyField(InternshipStep, blank=True)
+
+    # Note: these fields are now redundant, but kept for compatibility.
     intro_completed = models.BooleanField(default=False)
     roadmap_completed = models.BooleanField(default=False)
 
@@ -125,12 +119,7 @@ class Submission(models.Model):
         return f"Submission for {self.user_internship}"
 
 
-# -----------------------------
-# SIGNALS TO CLEAN UP CLOUDINARY
-# -----------------------------
-
-
-# Delete old thumbnail on update
+# --- SIGNALS (Unchanged) ---
 @receiver(pre_save, sender=Internship)
 def delete_old_thumbnail(sender, instance, **kwargs):
     if not instance.pk:
@@ -139,7 +128,6 @@ def delete_old_thumbnail(sender, instance, **kwargs):
         old_instance = Internship.objects.get(pk=instance.pk)
     except Internship.DoesNotExist:
         return
-
     old_image = old_instance.thumbnail
     new_image = instance.thumbnail
     if old_image and old_image != new_image:
@@ -149,7 +137,6 @@ def delete_old_thumbnail(sender, instance, **kwargs):
             pass
 
 
-# Delete thumbnail when Internship is deleted
 @receiver(post_delete, sender=Internship)
 def delete_thumbnail_on_delete(sender, instance, **kwargs):
     if instance.thumbnail:
